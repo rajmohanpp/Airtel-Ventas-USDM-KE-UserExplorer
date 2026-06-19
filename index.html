@@ -199,10 +199,10 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
     <div class="login-logo">KENYA USDM 2.0</div>
     <div class="login-sub">User Explorer &mdash; Sign in to continue</div>
     <div class="login-label">Email</div>
-    <input class="login-input" id="liEmail" type="email" placeholder="you@example.com" autocomplete="username"/>
+    <input class="login-input" id="liEmail" type="email" placeholder="you@example.com" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('liPass').focus()"/>
     <div style="height:14px"></div>
     <div class="login-label">Password</div>
-    <input class="login-input" id="liPass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    <input class="login-input" id="liPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div class="login-err" id="liErr"></div>
     <button class="login-btn" id="liBtn" onclick="doLogin()">Sign In</button>
   </div>
@@ -378,11 +378,24 @@ async function doLogin(){
   const pass  = document.getElementById('liPass').value;
   const errEl = document.getElementById('liErr');
   const btn   = document.getElementById('liBtn');
+  if(!email||!pass){ errEl.textContent='Please enter email and password.'; return; }
   errEl.textContent=''; btn.disabled=true; btn.textContent='Signing in…';
-  const {error} = await sb.auth.signInWithPassword({email, password:pass});
-  if(error){ errEl.textContent=error.message; btn.disabled=false; btn.textContent='Sign In'; return; }
-  document.getElementById('loginScreen').style.display='none';
-  await loadAllData();
+  try{
+    const {data,error} = await sb.auth.signInWithPassword({email, password:pass});
+    if(error){
+      let msg = error.message;
+      if(msg.includes('Invalid login')) msg='Invalid email or password.';
+      if(msg.includes('Email not confirmed')) msg='Email not confirmed — go to Supabase → Authentication → Users, click your user and confirm the email.';
+      if(msg.includes('not authorized')) msg='User not found. Create the user in Supabase → Authentication → Users.';
+      errEl.textContent=msg;
+      btn.disabled=false; btn.textContent='Sign In'; return;
+    }
+    document.getElementById('loginScreen').style.display='none';
+    await loadAllData();
+  }catch(e){
+    errEl.textContent='Connection error: '+e.message;
+    btn.disabled=false; btn.textContent='Sign In';
+  }
 }
 
 async function doLogout(){
