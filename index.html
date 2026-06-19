@@ -187,6 +187,10 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
 .login-btn:disabled{opacity:.5;cursor:not-allowed;}
 .login-err{color:#f87171;font-size:12px;margin-top:10px;min-height:18px;}
 .login-loading{text-align:center;color:var(--muted);font-size:13px;margin-top:12px;}
+.log-panel{margin-top:16px;background:#000;border:1px solid #333;border-radius:6px;padding:10px;max-height:160px;overflow-y:auto;font-family:monospace;font-size:11px;}
+.log-line{padding:1px 0;border-bottom:1px solid #1a1a1a;}
+.log-ok{color:#4ade80;}.log-err{color:#f87171;}.log-info{color:#60a5fa;}.log-warn{color:#facc15;}
+.log-toggle{font-size:10px;color:var(--muted);cursor:pointer;text-decoration:underline;margin-top:8px;display:inline-block;}
 #appLoadOverlay{position:fixed;inset:0;z-index:9998;background:var(--bg1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -205,6 +209,8 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
     <input class="login-input" id="liPass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     <div class="login-err" id="liErr"></div>
     <button class="login-btn" id="liBtn" onclick="doLogin()">Sign In</button>
+    <span class="log-toggle" onclick="document.getElementById('dbgPanel').style.display=document.getElementById('dbgPanel').style.display==='none'?'block':'none'">▶ Show debug log</span>
+    <div class="log-panel" id="dbgPanel" style="display:none"><div id="dbgLines"></div></div>
   </div>
 </div>
 <!-- APP LOADING OVERLAY -->
@@ -368,9 +374,46 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
 const SUPABASE_URL  = 'https://yjmxnwihkvadlamluzyd.supabase.co';   // ← replace
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqbXhud2loa3ZhZGxhbWx1enlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjYzNTMsImV4cCI6MjA5NzQ0MjM1M30.JlCadhLEPMg-w74cLpT9Nyr1eYEtt1U6HuYo0C658dE'; // ← replace
 
+// ── Debug logger ─────────────────────────────────────────────────────────────
+function dbg(msg, type='info'){
+  var panel=document.getElementById('dbgPanel');
+  var lines=document.getElementById('dbgLines');
+  if(!lines) return;
+  panel.style.display='block';
+  document.querySelector('.log-toggle').textContent='▼ Hide debug log';
+  var d=document.createElement('div');
+  d.className='log-line log-'+type;
+  d.textContent='['+new Date().toISOString().slice(11,23)+'] '+msg;
+  lines.appendChild(d);
+  panel.scrollTop=panel.scrollHeight;
+  console.log('[USDM]',msg);
+}
+
 // ── Supabase client ───────────────────────────────────────────────────────────
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+let sb = null;
+window.addEventListener('load', function(){
+  dbg('Page loaded', 'info');
+  try{
+    if(!window.supabase){ throw new Error('Supabase CDN failed to load — check internet connection'); }
+    dbg('Supabase CDN ✓', 'ok');
+    const { createClient } = window.supabase;
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+    dbg('Supabase client created for: '+SUPABASE_URL.replace('https://','').split('.')[0]+'...', 'ok');
+    sb.auth.getSession().then(function(res){
+      var session=res.data&&res.data.session;
+      if(session){
+        dbg('Existing session found for: '+session.user.email, 'ok');
+        document.getElementById('loginScreen').style.display='none';
+        loadAllData();
+      } else {
+        dbg('No existing session — showing login', 'info');
+      }
+    }).catch(function(e){ dbg('getSession error: '+e.message,'err'); });
+  }catch(e){
+    dbg('INIT ERROR: '+e.message,'err');
+    document.getElementById('liErr').textContent=e.message;
+  }
+});
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 async function doLogin(){
@@ -379,20 +422,25 @@ async function doLogin(){
   const errEl = document.getElementById('liErr');
   const btn   = document.getElementById('liBtn');
   if(!email||!pass){ errEl.textContent='Please enter email and password.'; return; }
+  if(!sb){ errEl.textContent='Supabase not initialised — check debug log.'; return; }
   errEl.textContent=''; btn.disabled=true; btn.textContent='Signing in…';
+  dbg('Attempting sign-in for: '+email, 'info');
   try{
     const {data,error} = await sb.auth.signInWithPassword({email, password:pass});
     if(error){
+      dbg('Auth error: '+error.message+' (status '+error.status+')', 'err');
       let msg = error.message;
       if(msg.includes('Invalid login')) msg='Invalid email or password.';
-      if(msg.includes('Email not confirmed')) msg='Email not confirmed — go to Supabase → Authentication → Users, click your user and confirm the email.';
-      if(msg.includes('not authorized')) msg='User not found. Create the user in Supabase → Authentication → Users.';
+      if(msg.includes('Email not confirmed')) msg='Email not confirmed — in Supabase: Auth → Users → click user → Confirm.';
+      if(msg.includes('not authorized')) msg='User not found — create in Supabase: Auth → Users → Add user.';
       errEl.textContent=msg;
       btn.disabled=false; btn.textContent='Sign In'; return;
     }
+    dbg('Sign-in success: '+data.user.email, 'ok');
     document.getElementById('loginScreen').style.display='none';
     await loadAllData();
   }catch(e){
+    dbg('Exception: '+e.message, 'err');
     errEl.textContent='Connection error: '+e.message;
     btn.disabled=false; btn.textContent='Sign In';
   }
