@@ -371,6 +371,13 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 
+// ── Catch any JS error and show it on the login screen ───────────────────────
+window.onerror = function(msg, src, line, col, err){
+  var el = document.getElementById('liErr');
+  if(el) el.textContent = 'JS Error: '+msg+' (line '+line+')';
+  return false;
+};
+
 const SUPABASE_URL  = 'https://yjmxnwihkvadlamluzyd.supabase.co';   // ← replace
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqbXhud2loa3ZhZGxhbWx1enlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjYzNTMsImV4cCI6MjA5NzQ0MjM1M30.JlCadhLEPMg-w74cLpT9Nyr1eYEtt1U6HuYo0C658dE'; // ← replace
 
@@ -524,16 +531,7 @@ async function loadAllData(){
   }
 }
 
-// ── On page load: check existing session ─────────────────────────────────────
-(async()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(session){
-    document.getElementById('loginScreen').style.display='none';
-    await loadAllData();
-  }
-})();
-
-// ── Placeholder D (filled after login) ───────────────────────────────────────
+// ── Global state (must be at top level before any function uses them) ────────
 let D={users:[],rolePerms:{},kcPerms:{},workflows:[],warehouses:{}};
 let U=[],RP={},KC={},WF=[],WH={};
 let WHC={};
