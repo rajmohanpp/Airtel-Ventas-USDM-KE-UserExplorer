@@ -12,6 +12,7 @@ body[data-theme="forest"]   { --bg:#0d1a12;--bg2:#132019;--bg3:#182b20;--border:
 body[data-theme="ocean"]    { --bg:#070f1a;--bg2:#0a1628;--bg3:#0e1e35;--border:#162a44;--text:#cce7ff;--muted:#5e89b0;--hover:#0f2040; }
 body[data-theme="rose"]     { --bg:#1a0a0f;--bg2:#240d16;--bg3:#2d1020;--border:#3d1a2a;--text:#fce4ec;--muted:#b07090;--hover:#351220; }
 body[data-theme="black"]    { --bg:#000000;--bg2:#0a0a0a;--bg3:#111111;--border:#222222;--text:#f5f5f5;--muted:#666666;--hover:#1a1a1a; }
+body[data-theme="carbon"]   { --bg:#000000;--bg2:#111111;--bg3:#1c1c1c;--border:#303030;--text:#d4d4d4;--muted:#737373;--hover:#222222;--accent:#9ca3af; }
 :root { --accent:#4f8ef7;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--purple:#a855f7;--cyan:#06b6d4;--orange:#f97316; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;overflow-x:hidden;transition:background .2s,color .2s}
@@ -42,6 +43,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .tb[data-t="ocean"]   {background:linear-gradient(135deg,#070f1a,#38bdf8)}
 .tb[data-t="rose"]    {background:linear-gradient(135deg,#1a0a0f,#f472b6)}
 .tb[data-t="black"]   {background:linear-gradient(135deg,#000000,#444444)}
+.tb[data-t="carbon"]  {background:linear-gradient(135deg,#000000,#9ca3af)}
 /* STATS */
 .sbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 18px;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
 .sv{display:flex;flex-direction:column;gap:2px}
@@ -231,6 +233,8 @@ mark{background:rgba(245,158,11,.35);border-radius:2px;color:inherit}
       <div class="tb"    data-t="forest"  title="Forest"   onclick="setTheme(this)"></div>
       <div class="tb"    data-t="ocean"   title="Ocean"    onclick="setTheme(this)"></div>
       <div class="tb"    data-t="rose"    title="Rose"     onclick="setTheme(this)"></div>
+      <div class="tb"    data-t="black"   title="Black"    onclick="setTheme(this)"></div>
+      <div class="tb"    data-t="carbon"  title="Carbon"   onclick="setTheme(this)"></div>
     </div>
     <button class="btn btn-g" onclick="exportCSV()">&#x1F4BE; Export CSV</button>
   <button onclick="doLogout()" style="padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;cursor:pointer;margin-left:8px;" title="Sign out">Sign out</button>
@@ -835,11 +839,4 @@ function exportCSV(){
     ];
     lines.push(row.map(function(v){return '"'+String(v||'').replace(/"/g,'""')+'"';}).join(','));
   });
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='usdm_users_export.csv';a.click();
-}
-
-// init() is called by loadAllData() after fetch
-
-</script>
-</body>
-</html>
+  var a=document.createEle
